@@ -1,62 +1,92 @@
 import pytest
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
+URL = "https://itcareerhub.de/ru"
 
 
 @pytest.fixture
 def driver():
-    options = Options()
-    driver = webdriver.Firefox(options=options)
-    driver.maximize_window()
-    yield driver
-    driver.quit()
+    d = webdriver.Firefox()
+    d.maximize_window()
+    yield d
+    d.quit()
 
 
-def test_itcareerhub_ui_elements(driver):
-    driver.get("https://itcareerhub.de/ru")
-
+def test_itcareerhub(driver):
     wait = WebDriverWait(driver, 10)
+    driver.get(URL)
 
-    # 🔹 Проверка логотипа
-    logo = wait.until(EC.presence_of_element_located((By.XPATH, "//img[contains(@alt,'logo')]")))
+    logo = wait.until(
+        EC.visibility_of_element_located(
+            (By.CSS_SELECTOR, 'img[alt="IT Career Hub"]')
+        )
+    )
     assert logo.is_displayed()
 
-    # 🔹 Проверка ссылок меню
-    menu_items = [
-        "Программы",
-        "Способы оплаты",
-        "Новости",
-        "О нас",
-        "Отзывы"
-    ]
+    programs = wait.until(
+        EC.visibility_of_element_located((By.LINK_TEXT, "Программы"))
+    )
+    assert programs.is_displayed()
 
-    for item in menu_items:
-        element = wait.until(EC.presence_of_element_located(
-            (By.XPATH, f"//a[contains(text(),'{item}')]")
-        ))
-        assert element.is_displayed()
+    payment = wait.until(
+        EC.visibility_of_element_located((By.LINK_TEXT, "Способы оплаты"))
+    )
+    assert payment.is_displayed()
 
-    # 🔹 Проверка переключателя языков
-    ru = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(),'ru')]")))
-    de = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(),'de')]")))
+    about = wait.until(
+        EC.visibility_of_element_located((By.LINK_TEXT, "О нас"))
+    )
+    assert about.is_displayed()
 
-    assert ru.is_displayed()
-    assert de.is_displayed()
+    reviews = wait.until(
+        EC.visibility_of_element_located((By.LINK_TEXT, "Отзывы"))
+    )
+    assert reviews.is_displayed()
 
-    # 🔹 Клик по иконке телефона
-    phone_icon = wait.until(EC.element_to_be_clickable(
-        (By.XPATH, "//a[contains(@href,'tel')]")
-    ))
-    phone_icon.click()
+    blog = wait.until(
+        EC.visibility_of_element_located((By.LINK_TEXT, "Блог"))
+    )
+    assert blog.is_displayed()
 
-    # 🔹 Проверка текста
-    expected_text = "Если вы не дозвонились, заполните форму на сайте. Мы свяжемся с вами"
+    lang_ru = wait.until(
+        EC.visibility_of_element_located((By.LINK_TEXT, "ru"))
+    )
+    assert lang_ru.is_displayed()
 
-    message = wait.until(EC.presence_of_element_located(
-        (By.XPATH, f"//*[contains(text(),'{expected_text}')]")
-    ))
+    lang_de = wait.until(
+        EC.visibility_of_element_located((By.LINK_TEXT, "de"))
+    )
+    assert lang_de.is_displayed()
 
-    assert message.is_displayed()
+    driver.get("https://itcareerhub.de/ru/contact-us")
+
+    call_text = wait.until(
+        EC.visibility_of_element_located(
+            (By.CSS_SELECTOR, 'div[field="tn_text_1709210712463"]')
+        )
+    )
+
+    assert "Хотите записаться на курс и получить помощь по вопросам обучения?" in call_text.text
+
+
+def test_call(driver):
+    wait = WebDriverWait(driver, 20)
+
+    driver.get("https://itcareerhub.de/ru/contact-us")
+
+    call_button = wait.until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, 'a.tn-atom[href="#popup:form-tr"]'))
+    )
+    driver.execute_script("arguments[0].click();", call_button)
+
+    expected_text = "Свяжемся с вами в течение 15 минут, чтобы назначить время консультации"
+
+    popup_text = wait.until(
+        EC.visibility_of_element_located((By.CLASS_NAME, "tn-group__1862496483175871291755985340"
+                                          ))
+    )
+
+    assert expected_text in popup_text.text
