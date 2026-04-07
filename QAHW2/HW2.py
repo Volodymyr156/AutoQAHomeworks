@@ -1,21 +1,29 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.firefox.options import Options
-import time
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import pytest
+@pytest.fixture
+def driver():
+    driver = webdriver.Firefox()
+    driver.maximize_window()
+    yield driver
+    driver.quit()
 
-options = Options()
-driver = webdriver.Firefox(options=options)
 
+def test_payment_screenshot(driver):
+    wait = WebDriverWait(driver, 10)
 
-driver.get("https://itcareerhub.de/ru")
-driver.maximize_window()
-time.sleep(3)
+    driver.get("https://itcareerhub.de/ru")
 
-payment_section = driver.find_element(By.XPATH, "//*[contains(text(),'Способы оплаты')]")
-driver.execute_script("arguments[0].scrollIntoView();", payment_section)
-time.sleep(2)
+    payment_section = wait.until(
+        EC.presence_of_element_located(
+            (By.CSS_SELECTOR, 'div[data-artboard-recid="1921734713"]')
+        )
+    )
 
-payment_section.screenshot("payment_methods.png")
+    driver.execute_script(
+        "arguments[0].scrollIntoView({block: 'center'});", payment_section
+    )
 
-driver.quit()
+    payment_section.screenshot("payment_methods.png")
